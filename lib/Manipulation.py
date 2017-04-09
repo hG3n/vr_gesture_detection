@@ -19,6 +19,9 @@ class RayPointer(avango.script.Script):
     def __init__(self):
         self.super(RayPointer).__init__()
 
+        # pointer movement list
+        self.pointer_movement = []
+
 
     def my_constructor(self,
         SCENEGRAPH = None,
@@ -88,7 +91,11 @@ class RayPointer(avango.script.Script):
         self.intersection_geometry.Material.value.set_uniform("Color", avango.gua.Vec4(1.0,0.0,0.0,1.0))
         self.SCENEGRAPH.Root.value.Children.value.append(self.intersection_geometry)
 
+
+        
+
         self.ray = avango.gua.nodes.Ray()    
+
       
         self.always_evaluate(True) # change global evaluation policy
       
@@ -135,33 +142,30 @@ class RayPointer(avango.script.Script):
 
     def start_dragging(self):          
         print("start dragging called")
+
+        # clear last gesture point array
+        del self.pointer_movement[:]
+
+        # start dragging
         self.is_dragging = True;
-        # self.dragged_node = NODE
-        # self.dragged_node = None
-        # self.dragging_offset_mat = avango.gua.make_inverse_mat(self.pointer_node.WorldTransform.value) * self.dragged_node.WorldTransform.value # object transformation in pointer coordinate system
 
   
     def stop_dragging(self): 
-        print("stop dragging called")
-        self.is_dragging = False;
-        # self.dragged_node = None
-        # self.dragging_offset_mat = avango.gua.make_identity_mat()
 
+        # stop dragging
+        self.is_dragging = False;
+
+        # print number of captured elements in gestrure array
+        print("number of detected pointer position elements: %i" % len(self.pointer_movement))
+        
 
     def dragging(self):
+        # if the pointer is dragged save pointer world pos in array
         if self.is_dragging:
-            print("current position: ")
-            print(self.pointer_node.WorldTransform.value)
-        # print("dragging called")
-        # if self.dragged_node is not None: # object to drag
-        #     _new_mat = self.pointer_node.WorldTransform.value * self.dragging_offset_mat # new object position in world coodinates
-        #     _new_mat = avango.gua.make_inverse_mat(self.dragged_node.Parent.value.WorldTransform.value) * _new_mat # transform new object matrix from global to local space
-        
-            # self.dragged_node.Transform.value = _new_mat
+            self.pointer_movement.append(self.pointer_node.WorldTransform.value)
 
 
     ### callback functions ###
-
     @field_has_changed(sf_button)
     def sf_button_changed(self):
 
@@ -193,14 +197,14 @@ class RayPointer(avango.script.Script):
         #print("hits:", len(_mf_pick_result.value))
     
         if len(_mf_pick_result.value) > 0: # intersection found
-            # _pick_result = _mf_pick_result.value[0] # get first pick result
+            _pick_result = _mf_pick_result.value[0] # get first pick result
 
-            # _node = _pick_result.Object.value # get intersected geometry node
+            _node = _pick_result.Object.value # get intersected geometry node
     
-            # _pick_pos = _pick_result.Position.value # pick position in object coordinate system
-            # _pick_world_pos = _pick_result.WorldPosition.value # pick position in world coordinate system
+            _pick_pos = _pick_result.Position.value # pick position in object coordinate system
+            _pick_world_pos = _pick_result.WorldPosition.value # pick position in world coordinate system
     
-            # _distance = _pick_result.Distance.value * self.ray_length # pick distance in ray coordinate system
+            _distance = _pick_result.Distance.value * self.ray_length # pick distance in ray coordinate system
     
             # print(_node, _pick_pos, _pick_world_pos, _distance)
 
