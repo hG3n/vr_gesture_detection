@@ -150,7 +150,8 @@ class RayPointer(avango.script.Script):
 
     def dragging(self):
         if self.is_dragging:
-            print("dragging")
+            print("current position: ")
+            print(self.pointer_node.WorldTransform.value)
         # print("dragging called")
         # if self.dragged_node is not None: # object to drag
         #     _new_mat = self.pointer_node.WorldTransform.value * self.dragging_offset_mat # new object position in world coodinates
