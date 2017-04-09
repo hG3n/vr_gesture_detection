@@ -21,6 +21,7 @@ class RayPointer(avango.script.Script):
 
         # pointer movement list
         self.pointer_movement = []
+        self.initial_direction = None
 
 
     def my_constructor(self,
@@ -145,6 +146,10 @@ class RayPointer(avango.script.Script):
 
         # clear last gesture point array
         del self.pointer_movement[:]
+
+        # save starting direction
+        self.initial_direction = self.ray.Direction.value
+        print(self.initial_direction)
 
         # start dragging
         self.is_dragging = True;
