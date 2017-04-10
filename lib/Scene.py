@@ -55,7 +55,7 @@ class Scene:
         ## load car geometry
         self.passat_group = _loader.create_geometry_from_file("passat", "/opt/3d_models/cars/passat/passat.obj", avango.gua.LoaderFlags.DEFAULTS | avango.gua.LoaderFlags.LOAD_MATERIALS | avango.gua.LoaderFlags.MAKE_PICKABLE)
         self.passat_group.Transform.value = \
-            avango.gua.make_trans_mat(0.0,-0.25,0.0) * \
+            avango.gua.make_trans_mat(0.0,-0.25,-2.1) * \
             avango.gua.make_rot_mat(-90.0,1,0,0) * \
             avango.gua.make_rot_mat(-45.0,0,0,1) * \
             avango.gua.make_scale_mat(0.0045)
@@ -67,4 +67,16 @@ class Scene:
         
         # manually enable transparency on glass geometry nodes (not parsed when loading OBJ files)
         self.passat_group.Children.value[1].Material.value.set_uniform("Color", avango.gua.Vec4(0.75,0.8,0.9,0.2))        
+
+
+        self.plane_geometry = _loader.create_geometry_from_file("ground_geometry", "data/objects/plane.obj", avango.gua.LoaderFlags.DEFAULTS)
+        self.plane_geometry.Transform.value = \
+            avango.gua.make_trans_mat(0.0,-0.2,0.0) * \
+            avango.gua.make_rot_mat(180.0,0,1,0) * \
+            avango.gua.make_rot_mat(-90.0,1,0,0) * \
+            avango.gua.make_scale_mat(0.5)
+        PARENT_NODE.Children.value.append(self.plane_geometry)
+
+
+
         

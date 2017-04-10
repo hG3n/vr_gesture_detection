@@ -12,7 +12,8 @@ import avango.daemon
 class RayPointer(avango.script.Script):
 
     ## input fields
-    sf_button = avango.SFBool()
+    sf_button_down = avango.SFBool()
+    sf_button_up = avango.SFBool()
 
 
     ## constructor
@@ -22,6 +23,8 @@ class RayPointer(avango.script.Script):
         # pointer movement list
         self.pointer_movement = []
         self.initial_direction = None
+        self.is_dragging = None
+        self.p_is_moving = None
 
 
     def my_constructor(self,
@@ -66,7 +69,8 @@ class RayPointer(avango.script.Script):
         self.pointer_device_sensor = avango.daemon.nodes.DeviceSensor(DeviceService = avango.daemon.DeviceService())
         self.pointer_device_sensor.Station.value = POINTER_DEVICE_STATION
 
-        self.sf_button.connect_from(self.pointer_device_sensor.Button0)
+        self.sf_button_down.connect_from(self.pointer_device_sensor.Button0)
+        self.sf_button_up.connect_from(self.pointer_device_sensor.Button1)
 
 
         ## init nodes
@@ -93,10 +97,7 @@ class RayPointer(avango.script.Script):
         self.SCENEGRAPH.Root.value.Children.value.append(self.intersection_geometry)
 
 
-        
-
         self.ray = avango.gua.nodes.Ray()    
-
       
         self.always_evaluate(True) # change global evaluation policy
       
@@ -116,7 +117,6 @@ class RayPointer(avango.script.Script):
 
         # intersect
         _mf_pick_result = self.SCENEGRAPH.ray_test(self.ray, self.pick_options, self.white_list, self.black_list)
-
         return _mf_pick_result
 
 
@@ -145,6 +145,35 @@ class RayPointer(avango.script.Script):
         print("start dragging called")
 
         # clear last gesture point array
+        # del self.pointer_movement[:]
+
+        # save starting direction
+        # self.initial_direction = self.ray.Direction.value
+        # print(self.initial_direction)
+
+        # start dragging
+        self.is_dragging = True;
+
+  
+    def stop_dragging(self): 
+        pass
+
+        # stop dragging
+        # self.is_dragging = False;
+
+        # print number of captured elements in gestrure array
+        # print("number of detected pointer position elements: %i" % len(self.pointer_movement))
+
+    def dragging(self):
+        # if the pointer is dragged save pointer world pos in array
+        if self.is_dragging:
+            pass
+
+
+    def start_gesture(self):          
+        print("start gesture")
+
+        # clear last gesture point array
         del self.pointer_movement[:]
 
         # save starting direction
@@ -152,31 +181,32 @@ class RayPointer(avango.script.Script):
         print(self.initial_direction)
 
         # start dragging
-        self.is_dragging = True;
+        self.p_is_moving = True;
 
   
-    def stop_dragging(self): 
+    def end_gesture(self): 
 
         # stop dragging
-        self.is_dragging = False;
+        self.p_is_moving = False;
 
         # print number of captured elements in gestrure array
-        print("number of detected pointer position elements: %i" % len(self.pointer_movement))
-        
+        # print("number of detected pointer position elements: %i" % len(self.pointer_movement))
+        print("end gesture")
 
-    def dragging(self):
-        # if the pointer is dragged save pointer world pos in array
-        if self.is_dragging:
-            self.pointer_movement.append(self.pointer_node.WorldTransform.value)
 
+    def moving_pointer(self):
+        print(".")
+        if self.p_is_moving:
+            a = self.calc_pick_result(self.pointer_node.WorldTransform.value)
+            print("got", a)
+            if len(a.value) > 0:
+                print(a.value[0])
 
     ### callback functions ###
-    @field_has_changed(sf_button)
-    def sf_button_changed(self):
+    @field_has_changed(sf_button_down)
+    def sf_button_down_changed(self):
 
-        if self.sf_button.value == True: # button pressed
-
-            print("button pressed")
+        if self.sf_button_down.value == True: # button pressed
 
             # _mf_pick_result = self.calc_pick_result(PICK_MAT = self.pointer_node.WorldTransform.value)
     
@@ -191,8 +221,21 @@ class RayPointer(avango.script.Script):
             self.start_dragging()
 
         else: # button released
-            print("button released")
             self.stop_dragging()
+
+
+
+    ### callback functions ###
+    @field_has_changed(sf_button_up)
+    def sf_button_up_changed(self):
+
+        if self.sf_button_up.value == True: # button pressed
+            self.start_gesture()
+            
+        else: # button released
+            self.end_gesture()
+            
+
 
     
     def evaluate(self):   
@@ -220,5 +263,6 @@ class RayPointer(avango.script.Script):
         
 
 
-        self.dragging() # possibly drag object
+        # self.dragging() # possibly drag object
+        self.moving_pointer()
 
