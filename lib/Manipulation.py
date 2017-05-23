@@ -25,6 +25,9 @@ class RayPointer(avango.script.Script):
         self.initial_direction = None
         self.is_dragging = None
         self.p_is_moving = None
+        self.proxy_list = []
+        self.gesture_point_list = []
+        self.gesture_id = 0
 
 
     def my_constructor(self,
@@ -100,6 +103,8 @@ class RayPointer(avango.script.Script):
         self.ray = avango.gua.nodes.Ray()    
       
         self.always_evaluate(True) # change global evaluation policy
+
+
       
         
     
@@ -176,6 +181,11 @@ class RayPointer(avango.script.Script):
         # clear last gesture point array
         del self.pointer_movement[:]
 
+        for proxy in self.proxy_list:
+            self.SCENEGRAPH.Root.value.Children.value.remove(proxy)
+
+        del self.proxy_list[:]
+
         # save starting direction
         self.initial_direction = self.ray.Direction.value
         print(self.initial_direction)
@@ -191,16 +201,44 @@ class RayPointer(avango.script.Script):
 
         # print number of captured elements in gestrure array
         # print("number of detected pointer position elements: %i" % len(self.pointer_movement))
+        print(self.gesture_point_list)
+        self.write_gesture_symbol(self.gesture_id)
+        self.gesture_id += 1
+        del self.gesture_point_list[:]
         print("end gesture")
 
 
+    def write_gesture_symbol(self, id):
+        file = open('gesture/myfile'+str(id), "w")
+        for point in self.gesture_point_list:
+            # file.write(str(point)+"\n")
+            file.write( str(point[0]) + " " + str(point[1]) +"\n")
+
+        file.close()
+
+
+
+
+
     def moving_pointer(self):
-        print(".")
+            
+        # init nodes and geometries
+        _loader = avango.gua.nodes.TriMeshLoader() 
+        
         if self.p_is_moving:
             a = self.calc_pick_result(self.pointer_node.WorldTransform.value)
-            print("got", a)
             if len(a.value) > 0:
-                print(a.value[0])
+                _picked_object = a.value[0]
+                _pick_pos = _picked_object.Position.value
+                self.gesture_point_list.append(_pick_pos)
+                _pick_mat = avango.gua.make_trans_mat(_pick_pos)
+
+                _proxy = _loader.create_geometry_from_file("proxy_geo", "data/objects/sphere.obj", avango.gua.LoaderFlags.DEFAULTS)
+                _proxy.Transform.value = _pick_mat * avango.gua.make_scale_mat(0.02)
+                _proxy.Material.value.set_uniform("Color", avango.gua.Vec4(0.0, 0.5, 1.0, 1.0))
+                self.proxy_list.append(_proxy)
+                self.SCENEGRAPH.Root.value.Children.value.append(_proxy)
+                
 
     ### callback functions ###
     @field_has_changed(sf_button_down)
