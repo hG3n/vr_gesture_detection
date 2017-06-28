@@ -91,7 +91,7 @@ class SpacemouseInput(MultiDofInput):
         _ry = self.device_sensor.Value4.value * -1.0
         _rz = self.device_sensor.Value5.value
 
-        #print(_x, _y, _z, _rx, _ry, _rz)
+        print("old",_x, _y, _z, _rx, _ry, _rz)
         
         if _x != 0.0:
             _x = self.filter_channel(_x, 0.0, -0.76, 0.82, 3, 3)
@@ -158,7 +158,7 @@ class NewSpacemouseInput(MultiDofInput):
         _ry = self.device_sensor.Value4.value * -1.0
         _rz = self.device_sensor.Value5.value
 
-        #print(_x, _y, _z, _rx, _ry, _rz)
+        print("new",_x, _y, _z, _rx, _ry, _rz)
         
         if _x != 0.0:
             _x = self.filter_channel(_x, 0.0, -350.0, 350.0, 3, 3)

@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+import sys
+
 ### import guacamole libraries
 import avango
 import avango.gua
@@ -8,6 +10,7 @@ import avango.gua
 ### import application libraries
 from lib.ViewingSetup import StereoViewingSetup
 from lib.Scene import Scene
+from lib.Device import SpacemouseInput
 from lib.Device import NewSpacemouseInput
 from lib.Navigation import SteeringNavigation
 from lib.Manipulation import RayPointer
@@ -15,6 +18,9 @@ from lib.Manipulation import RayPointer
 
 def start():
 
+
+
+    # app.exec_()
 
     ## create scenegraph
     scenegraph = avango.gua.nodes.SceneGraph(Name = "scenegraph")
@@ -24,7 +30,8 @@ def start():
 
 
     ## init navigation technique
-    deviceInput = NewSpacemouseInput()
+    deviceInput = SpacemouseInput()
+    # deviceInput = NewSpacemouseInput()
     deviceInput.my_constructor("gua-device-spacemouse")
         
     steeringNavigation = SteeringNavigation()
@@ -135,23 +142,25 @@ def start():
 
 ## print the subgraph under a given node to the console
 def print_graph(root_node):
-  stack = [(root_node, 0)]
-  while stack:
-    node, level = stack.pop()
-    print("│   " * level + "├── {0} <{1}>".format(
-      node.Name.value, node.__class__.__name__))
-    stack.extend(
-      [(child, level + 1) for child in reversed(node.Children.value)])
+    stack = [(root_node, 0)]
+    while stack:
+        node, level = stack.pop()
+        print("│   " * level + "├── {0} <{1}>".format(
+            node.Name.value, node.__class__.__name__))
+        stack.extend(
+            [(child, level + 1) for child in reversed(node.Children.value)])
 
 ## print all fields of a fieldcontainer to the console
 def print_fields(node, print_values = False):
-  for i in range(node.get_num_fields()):
-    field = node.get_field(i)
-    print("→ {0} <{1}>".format(field._get_name(), field.__class__.__name__))
-    if print_values:
-      print("  with value '{0}'".format(field.value))
+    for i in range(node.get_num_fields()):
+        field = node.get_field(i)
+        print("→ {0} <{1}>".format(field._get_name(), field.__class__.__name__))
+        if print_values:
+            print("  with value '{0}'".format(field.value))
 
 
 if __name__ == '__main__':
-  start()
+    start()
+
+    
 

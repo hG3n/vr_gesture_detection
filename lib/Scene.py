@@ -68,7 +68,7 @@ class Scene:
         # manually enable transparency on glass geometry nodes (not parsed when loading OBJ files)
         self.passat_group.Children.value[1].Material.value.set_uniform("Color", avango.gua.Vec4(0.75,0.8,0.9,0.2))        
 
-        plane_rot
+        # plane_rot
         self.plane_geometry = _loader.create_geometry_from_file("ground_geometry", "data/objects/plane.obj", avango.gua.LoaderFlags.DEFAULTS | avango.gua.LoaderFlags.LOAD_MATERIALS | avango.gua.LoaderFlags.MAKE_PICKABLE)
         self.plane_geometry.Transform.value = \
             avango.gua.make_trans_mat(0.0,-0.2,0.0) * \

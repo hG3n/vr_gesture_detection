@@ -1,0 +1,11 @@
+/build/
+/dist/
+/backup/
+/doc/doctrees/
+/doc/html/
+/doc/latex/
+/MANIFEST
+*~
+*.py[co]
+*.so
+*.egg-info

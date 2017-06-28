@@ -7,6 +7,12 @@ import avango.script
 from avango.script import field_has_changed
 import avango.daemon
 
+from .GestureRecognizer import *
+from .GestureParser import *
+import lib.Utility
+from scipy import misc
+
+    
 
 
 class RayPointer(avango.script.Script):
@@ -24,9 +30,9 @@ class RayPointer(avango.script.Script):
         self.pointer_movement = []
         self.initial_direction = None
         self.is_dragging = None
-        self.p_is_moving = None
+        self.p_is_moving = False
         self.proxy_list = []
-        self.gesture_point_list = []
+        self.gesture_vector_list = []
         self.gesture_id = 0
 
 
@@ -63,7 +69,19 @@ class RayPointer(avango.script.Script):
 
 
         ### resources ###
+
+
+        ### init recognizer and detection
+        self.recognizer = GestureRecognizer()
+        # self.parser = GestureParser(SCALE_MODE=ScaleMode.NO_SCALE, IMAGE_DIMENSION=32)
+        self.parser = GestureParser(SCALE_MODE=ScaleMode.SCALE_MAX, IMAGE_DIMENSION=32)
+
+        self.gesture_dataset, self.gesture_targets = lib.Utility.load_datasets("gestures/", 4)
+        self.recognizer.initialize(self.gesture_dataset)
+        self.checkifsame = None
     
+
+
         ## init sensors
         self.pointer_tracking_sensor = avango.daemon.nodes.DeviceSensor(DeviceService = avango.daemon.DeviceService())
         self.pointer_tracking_sensor.Station.value = POINTER_TRACKING_STATION
@@ -145,6 +163,20 @@ class RayPointer(avango.script.Script):
 
             self.intersection_geometry.Transform.value = avango.gua.make_trans_mat(PICK_WORLD_POS) * avango.gua.make_scale_mat(self.intersection_point_size)
 
+    def convert_point_list_to_qimage(self, image_array):
+        width = image_array.shape[0]
+        height = image_array.shape[1]
+        black = QtGui.QColor(0, 0, 0).rgb()
+        white = QtGui.QColor(255, 255, 255).rgb()
+        img = QtGui.QImage(width, height, QtGui.QImage.Format_RGB32)
+        for r in range(width):
+            for c in range(height):
+
+                if image_array[r, c] == 255:
+                    img.setPixel(c, r, white)
+                else:
+                    img.setPixel(c, r, black)
+        return img
 
     def start_dragging(self):          
         print("start dragging called")
@@ -201,26 +233,91 @@ class RayPointer(avango.script.Script):
 
         # print number of captured elements in gestrure array
         # print("number of detected pointer position elements: %i" % len(self.pointer_movement))
-        print(self.gesture_point_list)
-        self.write_gesture_symbol(self.gesture_id)
-        self.gesture_id += 1
-        del self.gesture_point_list[:]
-        print("end gesture")
+        if len(self.gesture_vector_list) > 2:
+            # print(self.gesture_vector_list)
+            # self.recognize_gesture_2d()
+            #self.write_gesture_symbol(self.gesture_id)
+            self.recognize_gesture_3d()
+            # self.write_gesture_symbol(self.gesture_id)
+            self.gesture_id += 1
+            del self.gesture_vector_list[:]
+
+            print("end gesture")
+
+
+    def recognize_gesture_2d(self):
+        point_list = [Point(p[0], p[1]) for p in self.gesture_vector_list]
+        image_array = self.parser.convert_point_list_to_scaled_image_array(point_list)
+        grey_array = lib.Utility.ndarray_color_to_grey(image_array)
+
+        new_size = (16, 16)
+        _grey_img_scaled = misc.imresize(grey_array, new_size) / 16
+
+        _grey_img_array = _grey_img_scaled.flatten()
+
+        result = self.recognizer.predict([_grey_img_array])
+        print(result)
+
+
+    def recognize_gesture_3d(self):
+        points = lib.Utility.prepare_gvl_for_plane_detection(self.gesture_vector_list)
+        two_dim_points = lib.Utility.project_3d_points_to_2d_space(points)
+
+        self.write_gpl_file(self.gesture_id, two_dim_points)
+        # 
+        point_list = [Point(p[0], p[1]) for p in two_dim_points]
+
+        image_array = self.parser.convert_point_list_to_scaled_image_array(point_list)
+
+        #print("img",image_array)
+        
+        # grey_array = lib.Utility.ndarray_color_to_grey(image_array)
+
+        #for row in grey_array:
+        #    print("grey image row", row)
+        #print("grey", grey_array)
+
+        new_size = (16, 16)
+        _grey_img_scaled = misc.imresize(image_array, new_size) / 16
+
+        _grey_img_array = _grey_img_scaled.flatten()
+        # print(_grey_img_array)
+        if self.checkifsame is not None:
+            if (self.checkifsame == _grey_img_array).all:
+                print("oh no this is tha same")
+            else:
+                print("errror is not here")
+            self.checkifsame = _grey_img_array
+        else:
+            self.checkifsame = _grey_img_array
+
+        result = self.recognizer.predict([_grey_img_array])
+        print(result)
 
 
     def write_gesture_symbol(self, id):
-        file = open('gesture/myfile'+str(id), "w")
-        for point in self.gesture_point_list:
-            # file.write(str(point)+"\n")
-            file.write( str(point[0]) + " " + str(point[1]) +"\n")
+        if len(self.gesture_vector_list) > 3:
+            file = open('test_gestures/gesture_'+str(id)+".gpl", "w")
+            for point in self.gesture_vector_list:
+                # file.write(str(point)+"\n")
+                file.write( str(point[0]) + " " + str(point[1]) + " " + str(point[2])  + "\n")
+                #file.write( str(point[0]) + " " + str(point[1]) + "\n")
 
-        file.close()
+            file.close()
 
+    def write_gpl_file(self, id, point_list):
+        #print(point_list)
+        if len(point_list) > 3:
+            file = open('gesture_point_lists/gesture_'+str(id)+".gpl", "w")
+            for point in point_list:
+                #print("Point" , point)
+                # file.write(str(point)+"\n")
+                file.write( str(point[0]) + " " + str(point[1])+ "\n")
+                #file.write( str(point[0]) + " " + str(point[1]) + "\n")
 
+            file.close()
 
-
-
-    def moving_pointer(self):
+    def moving_pointer_2d(self):
             
         # init nodes and geometries
         _loader = avango.gua.nodes.TriMeshLoader() 
@@ -229,8 +326,11 @@ class RayPointer(avango.script.Script):
             a = self.calc_pick_result(self.pointer_node.WorldTransform.value)
             if len(a.value) > 0:
                 _picked_object = a.value[0]
-                _pick_pos = _picked_object.Position.value
-                self.gesture_point_list.append(_pick_pos)
+                #_pick_rot = _picked_object.Rotation.value
+                #print(_pick_rot)
+                _pick_pos = _picked_object.WorldPosition.value
+                print(_pick_pos)
+                self.gesture_vector_list.append(_pick_pos)
                 _pick_mat = avango.gua.make_trans_mat(_pick_pos)
 
                 _proxy = _loader.create_geometry_from_file("proxy_geo", "data/objects/sphere.obj", avango.gua.LoaderFlags.DEFAULTS)
@@ -238,7 +338,25 @@ class RayPointer(avango.script.Script):
                 _proxy.Material.value.set_uniform("Color", avango.gua.Vec4(0.0, 0.5, 1.0, 1.0))
                 self.proxy_list.append(_proxy)
                 self.SCENEGRAPH.Root.value.Children.value.append(_proxy)
-                
+        
+    def moving_pointer_3d(self):
+
+        # init nodes and geometries
+        _loader = avango.gua.nodes.TriMeshLoader() 
+        if self.p_is_moving:
+            a = self.pointer_node.WorldTransform.value
+
+            _pick_pos = a.get_translate()
+            self.gesture_vector_list.append(_pick_pos)
+            #_pick_mat = _pick_pos
+            _pick_mat = avango.gua.make_trans_mat(_pick_pos)
+
+            _proxy = _loader.create_geometry_from_file("proxy_geo", "data/objects/sphere.obj", avango.gua.LoaderFlags.DEFAULTS)
+            _proxy.Transform.value = _pick_mat * avango.gua.make_scale_mat(0.02)
+            _proxy.Material.value.set_uniform("Color", avango.gua.Vec4(0.0, 0.5, 1.0, 1.0))
+            self.proxy_list.append(_proxy)
+            self.SCENEGRAPH.Root.value.Children.value.append(_proxy)
+
 
     ### callback functions ###
     @field_has_changed(sf_button_down)
@@ -302,5 +420,24 @@ class RayPointer(avango.script.Script):
 
 
         # self.dragging() # possibly drag object
-        self.moving_pointer()
+        # self.moving_pointer_2d()
+        self.moving_pointer_3d()
 
+"""
+        # init nodes and geometries
+        _loader = avango.gua.nodes.TriMeshLoader() 
+        
+        if self.p_is_moving:
+            a = self.calc_pick_result(self.pointer_node.WorldTransform.value)
+            if len(a.value) > 0:
+                _picked_object = a.value[0]
+                _pick_pos = _picked_object.Position.value
+                self.gesture_vector_list.append(_pick_pos)
+                _pick_mat = avango.gua.make_trans_mat(_pick_pos)
+
+                _proxy = _loader.create_geometry_from_file("proxy_geo", "data/objects/sphere.obj", avango.gua.LoaderFlags.DEFAULTS)
+                _proxy.Transform.value = _pick_mat * avango.gua.make_scale_mat(0.02)
+                _proxy.Material.value.set_uniform("Color", avango.gua.Vec4(0.0, 0.5, 1.0, 1.0))
+                self.proxy_list.append(_proxy)
+                self.SCENEGRAPH.Root.value.Children.value.append(_proxy)
+"""
